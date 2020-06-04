@@ -6,6 +6,6 @@
 #
 # All rights reserved.
 
-
-from .message import Message
-from .client import Userge, Filters
+from .filtr import Filtr, clear_db
+from .command import Command
+from .plugin import Plugin

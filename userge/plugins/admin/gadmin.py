@@ -6,9 +6,10 @@
 #
 # All rights reserved.
 
-
 import os
 import time
+import asyncio
+
 from emoji import get_emoji_regexp
 from pyrogram import ChatPermissions
 from pyrogram.errors import (FloodWait,
@@ -17,6 +18,7 @@ from pyrogram.errors import (FloodWait,
                              ChatAdminRequired,
                              PeerIdInvalid,
                              UserIdInvalid)
+
 from userge import userge, Message
 
 CHANNEL = userge.getCLogger(__name__)
@@ -25,39 +27,27 @@ CHANNEL = userge.getCLogger(__name__)
 async def is_admin(message: Message):
     check_user = await userge.get_chat_member(message.chat.id, message.from_user.id)
     user_type = check_user.status
-
     if user_type == "member":
         return False
-
-    elif user_type == "administrator":
+    if user_type == "administrator":
         rm_perm = check_user.can_restrict_members
-
         if rm_perm:
             return True
-        else:
-            return False
-
-    else:
-        return True
+        return False
+    return True
 
 
 async def is_sudoadmin(message: Message):
     check_user = await userge.get_chat_member(message.chat.id, message.from_user.id)
     user_type = check_user.status
-
     if user_type == "member":
         return False
-
-    elif user_type == "administrator":
+    if user_type == "administrator":
         add_adminperm = check_user.can_promote_members
-
         if add_adminperm:
             return True
-        else:
-            return False
-
-    else:
-        return True
+        return False
+    return True
 
 
 @userge.on_cmd("promote", about={
@@ -66,8 +56,8 @@ async def is_sudoadmin(message: Message):
                    "you can also add custom title while promoting new admin.\n"
                    "[NOTE: Requires proper admin rights in the chat!!!]",
     'examples': [
-        ".promote [username | userid] or [reply to user] :custom title (optional)",
-        ".promote @someusername/userid/replytouser Staff (custom title)"]})
+        "{tr}promote [username | userid] or [reply to user] :custom title (optional)",
+        "{tr}promote @someusername/userid/replytouser Staff (custom title)"]})
 async def promote_usr(message: Message):
     """
     this function can promote members in tg group
@@ -117,6 +107,8 @@ async def promote_usr(message: Message):
                                                  can_restrict_members=True,
                                                  can_invite_users=True,
                                                  can_pin_messages=True)
+
+                await asyncio.sleep(2)
 
                 await userge.set_administrator_title(chat_id, user_id, custom_rank)
 
@@ -169,7 +161,7 @@ async def promote_usr(message: Message):
     'header': "use this to demote group members",
     'description': "Remove admin rights from admin in the supergroup.\n"
                    "[NOTE: Requires proper admin rights in the chat!!!]",
-    'examples': ".demote [username | userid] or [reply to user]"})
+    'examples': "{tr}demote [username | userid] or [reply to user]"})
 async def demote_usr(message: Message):
     """
     this function can demote members in tg group
@@ -283,7 +275,7 @@ async def demote_usr(message: Message):
     'header': "use this to ban group members",
     'description': "Ban member from supergroup.\n"
                    "[NOTE: Requires proper admin rights in the chat!!!]",
-    'examples': ".ban [username | userid] or [reply to user] :reason (optional)"})
+    'examples': "{tr}ban [username | userid] or [reply to user] :reason (optional)"})
 async def ban_usr(message: Message):
     """
     this function can ban user from tg group
@@ -364,7 +356,7 @@ async def ban_usr(message: Message):
     'header': "use this to unban group members",
     'description': "Unban member from supergroup.\n"
                    "[NOTE: Requires proper admin rights in the chat!!!]",
-    'examples': ".unban [username | userid] or [reply to user]"})
+    'examples': "{tr}unban [username | userid] or [reply to user]"})
 async def unban_usr(message: Message):
     """
     this function can unban user from tg group
@@ -454,7 +446,7 @@ async def unban_usr(message: Message):
     'header': "use this to kick group members",
     'description': "Kick member from supergroup. member can rejoin the group again if they want.\n"
                    "[NOTE: Requires proper admin rights in the chat!!!]",
-    'examples': ".kick [username | userid] or [reply to user]"})
+    'examples': "{tr}kick [username | userid] or [reply to user]"})
 async def kick_usr(message: Message):
     """
     this function can kick user from tg group
@@ -473,7 +465,7 @@ async def kick_usr(message: Message):
 
             try:
                 get_mem = await userge.get_chat_member(chat_id, user_id)
-                await userge.kick_chat_member(chat_id, user_id, int(time.time() + 45))
+                await userge.kick_chat_member(chat_id, user_id, int(time.time() + 60))
                 await message.edit(
                     f"#KICK\n\n"
                     f"USER: [{get_mem.user.first_name}](tg://user?id={get_mem.user.id}) "
@@ -559,8 +551,8 @@ async def kick_usr(message: Message):
         '-h': "hours",
         '-d': "days"},
     'examples': [
-        ".mute -flag [username | userid] or [reply to user] :reason (optional)",
-        ".mute -d1 @someusername/userid/replytouser SPAM (mute for one day:reason SPAM)"]})
+        "{tr}mute -flag [username | userid] or [reply to user] :reason (optional)",
+        "{tr}mute -d1 @someusername/userid/replytouser SPAM (mute for one day:reason SPAM)"]})
 async def mute_usr(message: Message):
     """
     this function can mute user from tg group
@@ -571,9 +563,9 @@ async def mute_usr(message: Message):
     get_group = await userge.get_chat(chat_id)
     can_mute = await is_admin(message)
 
-    minutes = int(flags.get('-m', 0))
-    hours = int(flags.get('-h', 0))
-    days = int(flags.get('-d', 0))
+    minutes = flags.get('-m', 0)
+    hours = flags.get('-h', 0)
+    days = flags.get('-d', 0)
 
     if can_mute:
 
@@ -598,7 +590,7 @@ async def mute_usr(message: Message):
 
             try:
                 get_mem = await userge.get_chat_member(chat_id, user_id)
-                mute_period = minutes * 60
+                mute_period = int(minutes) * 60
                 await userge.restrict_chat_member(chat_id, user_id,
                                                   ChatPermissions(),
                                                   int(time.time() + mute_period))
@@ -645,7 +637,7 @@ async def mute_usr(message: Message):
 
             try:
                 get_mem = await userge.get_chat_member(chat_id, user_id)
-                mute_period = hours * 3600
+                mute_period = int(hours) * 3600
                 await userge.restrict_chat_member(chat_id, user_id,
                                                   ChatPermissions(),
                                                   int(time.time() + mute_period))
@@ -692,7 +684,7 @@ async def mute_usr(message: Message):
 
             try:
                 get_mem = await userge.get_chat_member(chat_id, user_id)
-                mute_period = hours * 86400
+                mute_period = int(days) * 86400
                 await userge.restrict_chat_member(chat_id, user_id,
                                                   ChatPermissions(),
                                                   int(time.time() + mute_period))
@@ -789,7 +781,7 @@ async def mute_usr(message: Message):
     'header': "use this to unmute group members",
     'description': "Unmute member from supergroup.\n"
                    "[NOTE: Requires proper admin rights in the chat!!!]",
-    'examples': ".unmute [username | userid]  or [reply to user]"})
+    'examples': "{tr}unmute [username | userid]  or [reply to user]"})
 async def unmute_usr(message: Message):
     """
     this function can unmute user from tg group
@@ -919,8 +911,8 @@ async def unmute_usr(message: Message):
                    "[NOTE: Requires proper admin rights in the chat!!!]",
     'flags': {'-c': "clean"},
     'examples': [
-        ".zombies [check deleted accounts in group]",
-        ".zombies -c [remove deleted accounts from group]"]})
+        "{tr}zombies [check deleted accounts in group]",
+        "{tr}zombies -c [remove deleted accounts from group]"]})
 async def zombie_clean(message: Message):
     """
     this function can remove deleted accounts from tg group
@@ -1012,6 +1004,7 @@ async def zombie_clean(message: Message):
                 r"ZOMBIE COUNT: `WOOHOO group is clean.. \^o^/`"
                 )
 
+
 @userge.on_cmd("pin", about={
     'header': "use this to pin & unpin messages",
     'description': "pin & unpin messages in groups with or without notify to members.",
@@ -1019,9 +1012,9 @@ async def zombie_clean(message: Message):
         '-s': "silent",
         '-u': "unpin"},
     'examples': [
-        ".pin [reply to chat message]",
-        ".pin -s [reply to chat message]",
-        ".pin -u [send to chat]"]})
+        "{tr}pin [reply to chat message]",
+        "{tr}pin -s [reply to chat message]",
+        "{tr}pin -u [send to chat]"]})
 async def pin_msgs(message: Message):
     """
     this function can pin & unpin message in groups
@@ -1063,7 +1056,6 @@ async def pin_msgs(message: Message):
                     f"\n`do .help pin for more info..`\n\n"
                     f"**ERROR:** `{e_f}`"
                     )
-            return
 
         elif silent_pin:
 
@@ -1082,7 +1074,6 @@ async def pin_msgs(message: Message):
                     f"\n`do .help pin for more info..`\n\n"
                     f"**ERROR:** `{e_f}`"
                     )
-            return
 
         else:
 
@@ -1101,10 +1092,10 @@ async def pin_msgs(message: Message):
                     f"\n`do .help pin for more info..`\n\n"
                     f"**ERROR:** `{e_f}`"
                     )
-            return
 
     else:
         await message.edit(r"`i don't have proper permission to do that! (* ￣︿￣)`", del_in=0)
+
 
 @userge.on_cmd("gpic", about={
     'header': "use this to set or delete chat photo",
@@ -1113,8 +1104,8 @@ async def pin_msgs(message: Message):
         '-s': "set",
         '-d': "delete"},
     'examples': [
-        ".gpic -s [reply to chat image/media file]",
-        ".gpic -d [send to chat]"]})
+        "{tr}gpic -s [reply to chat image/media file]",
+        "{tr}gpic -d [send to chat]"]})
 async def chatpic_func(message: Message):
     """
     this function can change chat photo
@@ -1204,6 +1195,106 @@ async def chatpic_func(message: Message):
             await message.edit(
                 text="`invalid flag type, do .help gpic for more info` ⚠", del_in=0)
             return
+
+    else:
+        await message.edit(r"`i don't have proper permission to do that! (* ￣︿￣)`", del_in=0)
+
+
+@userge.on_cmd("smode", about={
+    'header': "turn on/off chat slow mode",
+    'description': "use this to turn off or switch between chat slow mode \n"
+                   "available 6 modes, s10/s30/m1/m5/m15/h1",
+    'flags': {
+        '-s': "seconds",
+        '-m': "minutes",
+        '-h': "hour",
+        '-o': "off"},
+    'types': [
+        '-s10 = 10 seconds', '-s30 = 30 seconds', '-m1 = 1 minutes',
+        '-m5 = 5 minutes', '-m15 = 15 minutes', '-h1 = 1 hour'],
+    'examples': [
+        "{tr}smode -s30 [send to chat] (turn on 30s slow mode) ",
+        "{tr}smode -o [send to chat] (turn off slow mode)"]})
+async def smode_switch(message: Message):
+    """
+    turn on/off chat slow mode
+    """
+    chat_id = message.chat.id
+    can_do_smode = await is_sudoadmin(message)
+    get_group = await userge.get_chat(chat_id)
+    flags = message.flags
+
+    seconds = flags.get('-s', 0)
+    minutes = flags.get('-m', 0)
+    hours = flags.get('-h', 0)
+    smode_off = '-o' in flags
+
+    if can_do_smode:
+
+        if seconds:
+            try:
+                seconds = int(seconds)
+                await userge.set_slow_mode(chat_id, seconds)
+                await message.edit(
+                    f"`⏳ turned on {seconds} seconds slow mode for chat!`", del_in=0)
+                await CHANNEL.log(
+                    f"#SLOW_MODE\n\n"
+                    f"CHAT: `{get_group.title}` (`{chat_id}`)\n"
+                    f"SLOW MODE TIME: `{seconds} seconds`")
+            except Exception as e_f:
+                await message.edit(
+                    "`something went wrong!!, do .help smode for more info..` \n\n"
+                    f"**ERROR:** `{e_f}`")
+                return
+
+        elif minutes:
+            try:
+                smode_time = int(minutes) * 60
+                await userge.set_slow_mode(chat_id, smode_time)
+                await message.edit(
+                    f"`⏳ turned on {minutes} minutes slow mode for chat!`", del_in=0)
+                await CHANNEL.log(
+                    f"#SLOW_MODE\n\n"
+                    f"CHAT: `{get_group.title}` (`{chat_id}`)\n"
+                    f"SLOW MODE TIME: `{minutes} minutes`")
+            except Exception as e_f:
+                await message.edit(
+                    "`something went wrong!!, do .help smode for more info..` \n\n"
+                    f"**ERROR:** `{e_f}`")
+                return
+
+        elif hours:
+            try:
+                smode_time = int(hours) * 3600
+                await userge.set_slow_mode(chat_id, smode_time)
+                await message.edit("`⏳ turned on 1 hour slow mode for chat!`", del_in=0)
+                await CHANNEL.log(
+                    f"#SLOW_MODE\n\n"
+                    f"CHAT: `{get_group.title}` (`{chat_id}`)\n"
+                    f"SLOW MODE TIME: `{hours} hours`")
+            except Exception as e_f:
+                await message.edit(
+                    "`something went wrong!!, do .help smode for more info..` \n\n"
+                    f"**ERROR:** `{e_f}`")
+                return
+
+        elif smode_off:
+            try:
+                await userge.set_slow_mode(chat_id, 0)
+                await message.edit("`⏳ turned off slow mode for chat!`", del_in=0)
+                await CHANNEL.log(
+                    f"#SLOW_MODE\n\n"
+                    f"CHAT: `{get_group.title}` (`{chat_id}`)\n"
+                    f"SLOW MODE: `Off`")
+            except Exception as e_f:
+                await message.edit(
+                    "`something went wrong!!, do .help smode for more info..` \n\n"
+                    f"**ERROR:** `{e_f}`")
+            return
+
+        else:
+            await message.edit(
+                "`inavlid flag type/mode.. do .help smode for more info!!`", del_in=0)
 
     else:
         await message.edit(r"`i don't have proper permission to do that! (* ￣︿￣)`", del_in=0)

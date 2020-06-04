@@ -6,5 +6,4 @@
 #
 # All rights reserved.
 
-
-from .db import get_collection
+from . import pool
